@@ -19,7 +19,7 @@ void ConnectionHandler::operator()() {
             send_str(c.execute(store_));
             break;
         case CommandStatus::data_required:
-            send_str(c.execute(store_, receive_line(), 0));
+            send_str(c.execute(store_, receive_line(), 0u, 0));
             break;
         case CommandStatus::invalid_command:
             send_str("ERROR\r\n"sv);

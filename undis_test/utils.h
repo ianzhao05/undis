@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <random>
 #include <string>
 #include <string_view>
@@ -23,10 +24,11 @@ inline std::string random_string(std::string::size_type length) {
 }
 
 inline std::unordered_map<std::string, StoreValue>
-map_factory(std::string::size_type size) {
+map_factory(std::string::size_type size, int exp_time = 0) {
     std::unordered_map<std::string, StoreValue> m;
     for (std::string::size_type i = 0; i < size; ++i) {
-        m.emplace(random_string(size), StoreValue{random_string(size), 0});
+        m.emplace(random_string(size),
+                  StoreValue{random_string(size), 0, exp_time});
     }
     return m;
 }

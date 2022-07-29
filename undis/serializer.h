@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -40,23 +41,34 @@ Serializer &Serializer::operator<<(const Map<Hash, KeyEqual, Allocator> &mp) {
 
     ofs.write("UNDS", 4);
 
-    uint32_t size = static_cast<uint32_t>(mp.size()),
-             buckets = static_cast<uint32_t>(mp.bucket_count());
-    ofs.write(reinterpret_cast<char *>(&size), sizeof size);
-    ofs.write(reinterpret_cast<char *>(&buckets), sizeof buckets);
+    uint32_t size = 0;
+    ofs.seekp(sizeof size + 4);
 
-    auto it = mp.begin();
-    while (size-- > 0) {
-        const auto &[k, v] = *it++;
+    auto now = std::time(nullptr);
+    for (const auto &[k, v] : mp) {
+        if (v.exp_time <= now) {
+            continue;
+        }
+        ++size;
+
+        ofs.write(reinterpret_cast<const char *>(&v.exp_time),
+                  sizeof v.exp_time);
+
         const auto &str = v.str_val;
-        uint32_t klen = static_cast<uint32_t>(k.size()),
-                 vlen = static_cast<uint32_t>(str.size()), flags = v.flags;
-        ofs.write(reinterpret_cast<char *>(&klen), sizeof klen);
+        auto klen = static_cast<uint32_t>(k.size()),
+             vlen = static_cast<uint32_t>(str.size());
+
+        ofs.write(reinterpret_cast<const char *>(&klen), sizeof klen);
         ofs.write(k.data(), klen);
-        ofs.write(reinterpret_cast<char *>(&vlen), sizeof vlen);
+
+        ofs.write(reinterpret_cast<const char *>(&vlen), sizeof vlen);
         ofs.write(str.data(), vlen);
-        ofs.write(reinterpret_cast<char *>(&flags), sizeof flags);
+
+        ofs.write(reinterpret_cast<const char *>(&v.flags), sizeof v.flags);
     }
+
+    ofs.seekp(4);
+    ofs.write(reinterpret_cast<const char *>(&size), sizeof size);
 
     return *this;
 }
@@ -76,15 +88,20 @@ Serializer &Serializer::operator>>(Map<Hash, KeyEqual, Allocator> &mp) {
         return *this;
     }
 
-    uint32_t size, buckets;
+    uint32_t size;
     ifs.read(reinterpret_cast<char *>(&size), sizeof size);
-    ifs.read(reinterpret_cast<char *>(&buckets), sizeof buckets);
 
     mp.clear();
-    mp.rehash(buckets);
+    mp.reserve(size);
 
+    auto now = std::time(nullptr);
     while (size-- > 0) {
-        uint32_t klen, vlen, flags;
+        uint32_t klen, vlen, flags, exp_time;
+
+        ifs.read(reinterpret_cast<char *>(&exp_time), sizeof exp_time);
+        if (exp_time <= now) {
+            continue;
+        }
 
         ifs.read(reinterpret_cast<char *>(&klen), sizeof klen);
         std::string k(klen, '0');
@@ -96,7 +113,7 @@ Serializer &Serializer::operator>>(Map<Hash, KeyEqual, Allocator> &mp) {
 
         ifs.read(reinterpret_cast<char *>(&flags), sizeof flags);
 
-        mp.emplace(std::move(k), StoreValue{std::move(v), flags});
+        mp.emplace(std::move(k), StoreValue{std::move(v), flags, exp_time});
     }
 
     return *this;

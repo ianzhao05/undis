@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <ctime>
 #include <filesystem>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
@@ -28,14 +30,12 @@ class KVStore {
 
     std::optional<StoreValue> get(std::string_view key) const;
 
-    template <typename K, typename V>
-    void set(K &&key, V &&value, std::uint32_t flags);
+    template <typename K, typename... Args> void set(K &&key, Args &&...args);
 
-    template <typename K, typename V>
-    bool add(K &&key, V &&value, std::uint32_t flags);
+    template <typename K, typename... Args> bool add(K &&key, Args &&...args);
 
-    template <typename V>
-    bool replace(std::string_view key, V &&value, std::uint32_t flags);
+    template <typename... Args>
+    bool replace(std::string_view key, Args &&...args);
 
     bool append(std::string_view key, std::string_view suffix);
 
@@ -68,27 +68,29 @@ class KVStore {
     std::optional<Serializer> ser_;
 };
 
-template <typename K, typename V>
-void KVStore::set(K &&key, V &&value, std::uint32_t flags) {
+template <typename K, typename... Args>
+void KVStore::set(K &&key, Args &&...args) {
     std::scoped_lock lk{mtx_};
-    map_[std::forward<K>(key)] = {std::forward<V>(value), flags};
+    auto [it, stored] =
+        map_.try_emplace(std::forward<K>(key), std::forward<Args>(args)...);
+    if (!stored) {
+        it->second = {std::forward<Args>(args)...};
+    }
 }
 
-template <typename K, typename V>
-bool KVStore::add(K &&key, V &&value, std::uint32_t flags) {
+template <typename K, typename... Args>
+bool KVStore::add(K &&key, Args &&...args) {
     std::scoped_lock lk{mtx_};
-    return map_
-        .try_emplace(std::forward<K>(key),
-                     StoreValue{std::forward<V>(value), flags})
+    return map_.try_emplace(std::forward<K>(key), std::forward<Args>(args)...)
         .second;
 }
 
-template <typename V>
-bool KVStore::replace(std::string_view key, V &&value, std::uint32_t flags) {
+template <typename... Args>
+bool KVStore::replace(std::string_view key, Args &&...args) {
     std::scoped_lock lk{mtx_};
     auto it = map_.find(key);
     if (it != map_.end()) {
-        it->second = {std::forward<V>(value), flags};
+        it->second = {std::forward<Args>(args)...};
         return true;
     }
     return false;

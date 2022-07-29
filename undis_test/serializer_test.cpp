@@ -31,3 +31,16 @@ TEST(SerializerTest, DumpsAndLoads) {
 
     EXPECT_TRUE(std::filesystem::remove(p));
 }
+
+TEST(SerializerTest, IgnoresExpired) {
+    const std::filesystem::path p{"SerializerTest_IgnoresExpired.db"};
+    Serializer ser{p};
+
+    auto m1 = map_factory(10, -1);
+    decltype(m1) m2;
+    ser << m1;
+    ser >> m2;
+    EXPECT_EQ(m2.size(), 0);
+
+    EXPECT_TRUE(std::filesystem::remove(p));
+}

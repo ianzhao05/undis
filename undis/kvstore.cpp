@@ -13,7 +13,9 @@ KVStore::~KVStore() {
 std::optional<StoreValue> KVStore::get(std::string_view key) const {
     std::shared_lock lk{mtx_};
     auto it = map_.find(key);
-    return (it != map_.end()) ? std::optional{it->second} : std::nullopt;
+    return (it != map_.end() && it->second.exp_time > std::time(nullptr))
+               ? std::optional{it->second}
+               : std::nullopt;
 }
 
 bool KVStore::append(std::string_view key, std::string_view suffix) {
