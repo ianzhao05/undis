@@ -100,6 +100,10 @@ Serializer &Serializer::operator>>(Map<Hash, KeyEqual, Allocator> &mp) {
 
         ifs.read(reinterpret_cast<char *>(&exp_time), sizeof exp_time);
         if (exp_time <= now) {
+            ifs.read(reinterpret_cast<char *>(&klen), sizeof klen);
+            ifs.seekg(klen, std::ios::cur);
+            ifs.read(reinterpret_cast<char *>(&vlen), sizeof vlen);
+            ifs.seekg(vlen + 4, std::ios::cur);
             continue;
         }
 
