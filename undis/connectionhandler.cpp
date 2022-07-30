@@ -14,16 +14,23 @@ void ConnectionHandler::operator()() {
         }
 
         Command c{std::move(s)};
-        switch (c.status()) {
-        case CommandStatus::valid_command:
-            send_str(c.execute(store_));
-            break;
-        case CommandStatus::data_required:
-            send_str(c.execute(store_, receive_line(), 0u, 0));
-            break;
-        case CommandStatus::invalid_command:
-            send_str("ERROR\r\n"sv);
-            break;
+        try {
+            switch (c.status()) {
+            case CommandStatus::valid_command:
+                send_str(c.execute(store_));
+                break;
+            case CommandStatus::data_required:
+                send_str(c.execute(store_, receive_line()));
+                break;
+            case CommandStatus::invalid_command:
+                send_str("ERROR\r\n"sv);
+                break;
+            }
+        } catch (const std::invalid_argument &err) {
+            std::string err_str{"CLIENT_ERROR "sv};
+            err_str += err.what();
+            err_str += "\r\n"sv;
+            send_str(err_str);
         }
     }
 

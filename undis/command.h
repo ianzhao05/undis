@@ -6,7 +6,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -25,8 +24,8 @@ class Command {
     CommandStatus set_command(std::string command);
     CommandStatus status() const;
 
-    template <typename... Args>
-    std::string execute(KVStore &store, Args &&...args);
+    template <typename T>
+    std::string execute(KVStore &store, T&& data);
     std::string execute(KVStore &store);
 
   private:
@@ -36,33 +35,36 @@ class Command {
     command_types::CommandVariant command_;
 };
 
-template <typename... Args>
-std::string Command::execute(KVStore &store, Args &&...args) {
+template <typename T>
+std::string Command::execute(KVStore &store, T&& data) {
     using namespace command_types;
 
     if (auto *c = std::get_if<Storage>(&command_)) {
+        if (data.size() != c->bytes) {
+            throw std::invalid_argument{"Mismatch between bytes and value length"};
+        }
+
         bool stored = false;
-        auto &&data = std::get<0>(std::make_tuple(args...));
         switch (c->type) {
         case StorageType::set:
-            store.set(std::move(c->key), std::forward<Args>(args)...);
+            store.set(std::move(c->key), std::forward<T>(data), c->flags, c->exp_time);
             stored = true;
             break;
 
         case StorageType::add:
-            stored = store.add(std::move(c->key), std::forward<Args>(args)...);
+            stored = store.add(std::move(c->key), std::forward<T>(data), c->flags, c->exp_time);
             break;
 
         case StorageType::replace:
-            stored = store.replace(c->key, std::forward<Args>(args)...);
+            stored = store.replace(c->key, std::forward<T>(data), c->flags, c->exp_time);
             break;
 
         case StorageType::append:
-            stored = store.append(c->key, std::forward<decltype(data)>(data));
+            stored = store.append(c->key, std::forward<T>(data));
             break;
 
         case StorageType::prepend:
-            stored = store.prepend(c->key, std::forward<decltype(data)>(data));
+            stored = store.prepend(c->key, std::forward<T>(data));
             break;
         }
 

@@ -29,6 +29,8 @@ std::string Command::execute(KVStore &store) {
                 reply.append("VALUE ")
                     .append(key)
                     .append(" ")
+                    .append(std::to_string(val->flags))
+                    .append(" ")
                     .append(std::to_string(val->str_val.size()))
                     .append("\r\n")
                     .append(val->str_val)
@@ -66,9 +68,13 @@ void Command::parse() {
     auto it = storage_type_map.find(command);
     if (it != storage_type_map.end()) {
         std::string key;
-        is >> key;
+        std::uint32_t flags;
+        int exp_time;
+        unsigned bytes;
+        is >> key >> flags >> exp_time >> bytes;
 
-        command_.emplace<Storage>(Storage{it->second, key});
+        command_.emplace<Storage>(
+            Storage{it->second, key, flags, exp_time, bytes});
     } else if (command == "get") {
         std::vector<std::string> keys;
         std::copy(std::istream_iterator<std::string>{is},

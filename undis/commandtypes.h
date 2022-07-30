@@ -18,6 +18,9 @@ const std::unordered_map<std::string, StorageType> storage_type_map = {
 struct Storage {
     StorageType type;
     std::string key;
+    std::uint32_t flags;
+    int exp_time;
+    unsigned bytes;
 };
 
 struct Retrieval {
