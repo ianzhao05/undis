@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <cstdint>
 #include <ctime>
 #include <filesystem>
@@ -16,6 +17,12 @@
 #include "serializer.h"
 #include "storevalue.h"
 
+template <typename T>
+concept Key = std::convertible_to<T, std::string>;
+
+template <typename ...Args>
+concept ValueArgs = std::constructible_from<StoreValue, Args...>;
+
 class KVStore {
   public:
     KVStore() = default;
@@ -30,11 +37,16 @@ class KVStore {
 
     std::optional<StoreValue> get(std::string_view key) const;
 
-    template <typename K, typename... Args> void set(K &&key, Args &&...args);
+    template <Key K, typename... Args>
+        requires ValueArgs<Args...>
+    void set(K &&key, Args &&...args);
 
-    template <typename K, typename... Args> bool add(K &&key, Args &&...args);
+    template <Key K, typename... Args>
+        requires ValueArgs<Args...>
+    bool add(K &&key, Args &&...args);
 
     template <typename... Args>
+        requires ValueArgs<Args...>
     bool replace(std::string_view key, Args &&...args);
 
     bool append(std::string_view key, std::string_view suffix);
@@ -68,7 +80,8 @@ class KVStore {
     std::optional<Serializer> ser_;
 };
 
-template <typename K, typename... Args>
+template <Key K, typename... Args>
+    requires ValueArgs<Args...>
 void KVStore::set(K &&key, Args &&...args) {
     std::scoped_lock lk{mtx_};
     auto [it, stored] =
@@ -78,7 +91,8 @@ void KVStore::set(K &&key, Args &&...args) {
     }
 }
 
-template <typename K, typename... Args>
+template <Key K, typename... Args>
+    requires ValueArgs<Args...>
 bool KVStore::add(K &&key, Args &&...args) {
     std::scoped_lock lk{mtx_};
     return map_.try_emplace(std::forward<K>(key), std::forward<Args>(args)...)
@@ -86,6 +100,7 @@ bool KVStore::add(K &&key, Args &&...args) {
 }
 
 template <typename... Args>
+    requires ValueArgs<Args...>
 bool KVStore::replace(std::string_view key, Args &&...args) {
     std::scoped_lock lk{mtx_};
     auto it = map_.find(key);

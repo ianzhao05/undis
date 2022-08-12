@@ -1,8 +1,8 @@
 #pragma once
 
+#include <concepts>
 #include <cstdint>
 #include <ctime>
-#include <type_traits>
 
 struct StoreValue {
     std::string str_val;
@@ -10,7 +10,7 @@ struct StoreValue {
     std::uint32_t exp_time;
 
     template <typename T>
-        requires std::is_convertible_v<T, std::string>
+        requires std::convertible_to<T, std::string>
     StoreValue(T &&str_val, std::uint32_t flags, int exp)
         : str_val{str_val}, flags{flags}, exp_time{} {
         if (exp < 0) {
@@ -27,7 +27,7 @@ struct StoreValue {
 
     // TODO: Fix awful overload design
     template <typename T>
-        requires std::is_convertible_v<T, std::string>
+        requires std::convertible_to<T, std::string>
     StoreValue(T &&str_val, std::uint32_t flags, std::uint32_t exp)
         : str_val{str_val}, flags{flags}, exp_time{exp} {}
 

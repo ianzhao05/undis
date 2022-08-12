@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <iterator>
 #include <sstream>
@@ -25,7 +26,8 @@ class Command {
     CommandStatus status() const;
 
     template <typename T>
-    std::string execute(KVStore &store, T&& data);
+        requires std::convertible_to<T, std::string>
+    std::string execute(KVStore &store, T &&data);
     std::string execute(KVStore &store);
 
   private:
@@ -36,27 +38,32 @@ class Command {
 };
 
 template <typename T>
-std::string Command::execute(KVStore &store, T&& data) {
+    requires std::convertible_to<T, std::string>
+std::string Command::execute(KVStore &store, T &&data) {
     using namespace command_types;
 
     if (auto *c = std::get_if<Storage>(&command_)) {
         if (data.size() != c->bytes) {
-            throw std::invalid_argument{"Mismatch between bytes and value length"};
+            throw std::invalid_argument{
+                "Mismatch between bytes and value length"};
         }
 
         bool stored = false;
         switch (c->type) {
         case StorageType::set:
-            store.set(std::move(c->key), std::forward<T>(data), c->flags, c->exp_time);
+            store.set(std::move(c->key), std::forward<T>(data), c->flags,
+                      c->exp_time);
             stored = true;
             break;
 
         case StorageType::add:
-            stored = store.add(std::move(c->key), std::forward<T>(data), c->flags, c->exp_time);
+            stored = store.add(std::move(c->key), std::forward<T>(data),
+                               c->flags, c->exp_time);
             break;
 
         case StorageType::replace:
-            stored = store.replace(c->key, std::forward<T>(data), c->flags, c->exp_time);
+            stored = store.replace(c->key, std::forward<T>(data), c->flags,
+                                   c->exp_time);
             break;
 
         case StorageType::append:
