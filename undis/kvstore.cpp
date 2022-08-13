@@ -28,27 +28,6 @@ bool KVStore::append(std::string_view key, std::string_view suffix) {
     return false;
 }
 
-bool KVStore::prepend(std::string_view key, std::string_view prefix) {
-    std::scoped_lock lk{mtx_};
-    auto it = map_.find(key);
-    if (it != map_.end()) {
-        it->second.str_val.insert(0, prefix);
-        return true;
-    }
-    return false;
-}
-
-bool KVStore::prepend(std::string_view key, std::string &&prefix) {
-    std::scoped_lock lk{mtx_};
-    auto it = map_.find(key);
-    if (it != map_.end()) {
-        prefix.append(it->second.str_val);
-        it->second.str_val = std::move(prefix);
-        return true;
-    }
-    return false;
-}
-
 bool KVStore::del(std::string_view key) {
     std::scoped_lock lk{mtx_};
     // C++ 23

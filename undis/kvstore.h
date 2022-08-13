@@ -11,6 +11,7 @@
 #include <shared_mutex>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -18,7 +19,7 @@
 #include "storevalue.h"
 
 template <typename T>
-concept Key = std::convertible_to<T, std::string>;
+concept StringLike = std::convertible_to<T, std::string>;
 
 template <typename ...Args>
 concept ValueArgs = std::constructible_from<StoreValue, Args...>;
@@ -37,11 +38,11 @@ class KVStore {
 
     std::optional<StoreValue> get(std::string_view key) const;
 
-    template <Key K, typename... Args>
+    template <StringLike K, typename... Args>
         requires ValueArgs<Args...>
     void set(K &&key, Args &&...args);
 
-    template <Key K, typename... Args>
+    template <StringLike K, typename... Args>
         requires ValueArgs<Args...>
     bool add(K &&key, Args &&...args);
 
@@ -51,8 +52,7 @@ class KVStore {
 
     bool append(std::string_view key, std::string_view suffix);
 
-    bool prepend(std::string_view key, std::string_view prefix);
-    bool prepend(std::string_view key, std::string &&prefix);
+    template <StringLike T> bool prepend(std::string_view key, T &&prefix);
 
     bool del(std::string_view key);
 
@@ -80,7 +80,7 @@ class KVStore {
     std::optional<Serializer> ser_;
 };
 
-template <Key K, typename... Args>
+template <StringLike K, typename... Args>
     requires ValueArgs<Args...>
 void KVStore::set(K &&key, Args &&...args) {
     std::scoped_lock lk{mtx_};
@@ -91,7 +91,7 @@ void KVStore::set(K &&key, Args &&...args) {
     }
 }
 
-template <Key K, typename... Args>
+template <StringLike K, typename... Args>
     requires ValueArgs<Args...>
 bool KVStore::add(K &&key, Args &&...args) {
     std::scoped_lock lk{mtx_};
@@ -106,6 +106,23 @@ bool KVStore::replace(std::string_view key, Args &&...args) {
     auto it = map_.find(key);
     if (it != map_.end()) {
         it->second = {std::forward<Args>(args)...};
+        return true;
+    }
+    return false;
+}
+
+template <StringLike T>
+bool KVStore::prepend(std::string_view key, T &&prefix) {
+    std::scoped_lock lk{mtx_};
+    auto it = map_.find(key);
+    if (it != map_.end()) {
+        if constexpr (std::is_same_v<std::remove_reference_t<T>, std::string> &&
+                      !std::is_lvalue_reference_v<T>) {
+            prefix.append(it->second.str_val);
+            it->second.str_val = std::move(prefix); // NOLINT(bugprone-move-forwarding-reference)
+        } else {
+            it->second.str_val.insert(0, prefix);
+        }
         return true;
     }
     return false;
