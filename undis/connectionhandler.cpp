@@ -29,7 +29,7 @@ void ConnectionHandler::operator()() {
         } catch (const std::invalid_argument &err) {
             std::string err_str{"CLIENT_ERROR "sv};
             err_str += err.what();
-            err_str += "\r\n"sv;
+            err_str += "\r\nERROR\r\n"sv;
             send_str(err_str);
         }
     }

@@ -71,21 +71,32 @@ void Command::parse() {
         std::uint32_t flags;
         int exp_time;
         unsigned bytes;
-        is >> key >> flags >> exp_time >> bytes;
+        is >> key >> flags >> exp_time >> std::ws;
 
-        command_.emplace<Storage>(
-            Storage{it->second, key, flags, exp_time, bytes});
+        if (!is || is.peek() == '-') {
+            return;
+        }
+        is >> bytes;
+
+        if (is) {
+            command_.emplace<Storage>(
+                Storage{it->second, key, flags, exp_time, bytes});
+        }
     } else if (command == "get") {
         std::vector<std::string> keys;
         std::copy(std::istream_iterator<std::string>{is},
                   std::istream_iterator<std::string>{},
                   std::back_inserter(keys));
 
-        command_.emplace<Retrieval>(Retrieval{keys});
+        if (!keys.empty()) {
+            command_.emplace<Retrieval>(Retrieval{keys});
+        }
     } else if (command == "delete") {
         std::string key;
         is >> key;
 
-        command_.emplace<Deletion>(Deletion{key});
+        if (is) {
+            command_.emplace<Deletion>(Deletion{key});
+        }
     }
 }

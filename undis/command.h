@@ -45,7 +45,6 @@ std::string Command::execute(KVStore &store, T &&data) {
     using namespace command_types;
 
     if (auto *c = std::get_if<Storage>(&command_)) {
-        bool mismatch = false;
         std::size_t size;
         if constexpr (std::is_class_v<T>) {
             size = data.size();
@@ -54,7 +53,7 @@ std::string Command::execute(KVStore &store, T &&data) {
         }
         if (size != c->bytes) {
             throw std::invalid_argument{
-                "Mismatch between bytes and value length"};
+                "bad data chunk"};
         }
 
         bool stored = false;

@@ -90,3 +90,14 @@ TEST_F(CommandTest, ChecksBytes) {
     Command c{"set exists 0 0 3"};
     EXPECT_THROW(c.execute(store, "four"), std::invalid_argument);
 }
+
+TEST_F(CommandTest, BadCommandErrors) {
+    Command c;
+    EXPECT_EQ(c.set_command("get"), Command::invalid_command);
+    EXPECT_EQ(c.set_command("delete"), Command::invalid_command);
+    EXPECT_EQ(c.set_command("set"), Command::invalid_command);
+    EXPECT_EQ(c.set_command("add exists"), Command::invalid_command);
+    EXPECT_EQ(c.set_command("replace exists 0"), Command::invalid_command);
+    EXPECT_EQ(c.set_command("append exists 0 0"), Command::invalid_command);
+    EXPECT_EQ(c.set_command("prepend exists 0 0 -1"), Command::invalid_command);
+}
