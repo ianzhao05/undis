@@ -16,6 +16,7 @@ constexpr int SOCKET_ERROR = -1;
 #endif
 
 #include <chrono>
+#include <csignal>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -49,8 +50,8 @@ class Server {
 #endif
         }
     };
-
     static void close_socket(SOCKET fd);
+    static void sig_handler(int s);
 
     SOCKET sockfd_;
 
