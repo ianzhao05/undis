@@ -4,5 +4,6 @@ cmake-build-release
 
 .vscode
 .idea
+.cache
 
 undis.db

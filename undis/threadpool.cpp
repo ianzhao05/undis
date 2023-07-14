@@ -21,7 +21,7 @@ void ThreadPool::queue_job(const std::function<void()> &job) {
     }
 
     cv_.notify_one();
-    if (++age_ >= 1) {
+    if (++age_ >= CLEANUP_INTERVAL) {
         cleanup();
     }
 }

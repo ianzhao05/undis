@@ -14,6 +14,8 @@
 class ThreadPool {
     using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 
+    constexpr static unsigned CLEANUP_INTERVAL = 10;
+
   public:
     explicit ThreadPool(
         unsigned min_thread_count = std::thread::hardware_concurrency(),
