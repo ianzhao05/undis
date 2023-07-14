@@ -23,7 +23,7 @@ $ cmake --build ./build
 $ ctest --test-dir ./build
 ```
 
-Once built and ran, clients can connect on port `8080` by default, for instance with `telnet`.
+Once built and ran, clients can connect on port `8080` by default, for instance with `telnet`. Data will be read from and written to `undis.db` at startup and shutdown, respectively. The port can be changed with the `-p` flag, and the persistence file can be changed with the `-f` flag.
 
 ## Sample Usage
 
